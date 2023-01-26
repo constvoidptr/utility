@@ -4,7 +4,7 @@
 //! ```rust
 //! use utility::repl::prelude::*;
 //!
-//! repl::<Commands>();
+//! repl(evaluate);
 //!
 //! #[derive(clap::Args, Debug)]
 //! struct Person {
@@ -26,16 +26,13 @@
 //!     Exit,
 //! }
 //!
-//! impl Evaluate for Commands {
-//!     fn evaluate(&mut self) -> ControlFlow {
-//!         match self {
-//!             Self::Add(person) => println!("Added person: {person:?}"),
-//!             Self::Remove(person) => println!("Removed person: {person:?}"),
-//!             Self::Exit => return ControlFlow::Exit,
-//!         }
-//!
-//!         ControlFlow::Continue
+//! fn evaluate(commands: &mut Commands) -> ControlFlow {
+//!     match commands {
+//!         Commands::Add(person) => println!("Added person: {person:?}"),
+//!         Commands::Remove(person) => println!("Removed person: {person:?}"),
+//!         Commands::Exit => return ControlFlow::Exit,
 //!     }
+//!     ControlFlow::Continue
 //! }
 //! ```
 use std::io::Write;
@@ -44,7 +41,6 @@ use std::io::Write;
 pub mod prelude {
     pub use super::repl;
     pub use super::ControlFlow;
-    pub use super::Evaluate;
 }
 
 /// Indicates if the REPL loop should quit
@@ -53,21 +49,17 @@ pub enum ControlFlow {
     Exit,
 }
 
-/// Definition for the evaluate function
-pub trait Evaluate: clap::Parser {
-    /// Evaluation of the parsed input
-    ///
-    /// Return [`ControlFlow::Exit`] if you wish to exit the loop
-    fn evaluate(&mut self) -> ControlFlow;
-}
-
 /// Run the REPL
 ///
 /// See top level documentation for an example
-pub fn repl<E: Evaluate>() {
+pub fn repl<P, F>(mut evaluate: F)
+where
+    P: clap::Parser,
+    F: FnMut(&mut P) -> ControlFlow,
+{
     let mut control_flow = ControlFlow::Continue;
     let mut buf = String::new();
-    let mut parser: Option<E> = None;
+    let mut parser: Option<P> = None;
 
     while !matches!(control_flow, ControlFlow::Exit) {
         let Some(words) = read(&mut buf) else {
@@ -79,26 +71,20 @@ pub fn repl<E: Evaluate>() {
             continue;
         }
 
-        // Create a parser instance or update if it already exists
-        let update = match &mut parser {
-            Some(p) => p.try_update_from(&words).map(|_| p),
-            None => E::try_parse_from(words).map(|p| parser.insert(p)),
-        };
-
-        let parser = match update {
-            Ok(p) => p,
+        let parser = match P::try_parse_from(words) {
+            Ok(p) => parser.insert(p),
             Err(err) => {
                 println!("{err}");
                 continue;
             }
         };
 
-        control_flow = parser.evaluate();
+        control_flow = evaluate(parser);
     }
 }
 
 fn read(buf: &mut String) -> Option<Vec<String>> {
-    print!("{}> ", env!("CARGO_PKG_NAME"));
+    print!("> ");
     std::io::stdout().flush().expect("failed to flush stdout");
 
     buf.clear();
