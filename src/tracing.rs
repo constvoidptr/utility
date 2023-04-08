@@ -1,3 +1,12 @@
+//! Convenient tracing setup
+//!
+//! # Examples
+//!
+//! ```
+//! # use utility::tracing::Tracing;
+//! Tracing::stdout().with_file("log.exe").init();
+//! ```
+
 use std::path::{Path, PathBuf};
 use tracing_subscriber::layer::SubscriberExt;
 
@@ -10,12 +19,6 @@ pub struct Tracing {
 }
 
 impl Tracing {
-    /// Create an instance with logging to stdout enabled
-    #[inline]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// Create an empty instance with no logging enabled
     pub fn empty() -> Self {
         Self {
@@ -24,6 +27,31 @@ impl Tracing {
             log_to_tracy: false,
             log_to_file: None,
         }
+    }
+
+    /// Create an instance with logging to stdout enabled
+    ///
+    /// Short form of `Tracing::empty().with_stdout()`
+    #[inline]
+    pub fn stdout() -> Self {
+        Self::empty().with_stdout()
+    }
+
+    /// Create an instance with logging to tracy enabled
+    ///
+    /// Short form of `Tracing::empty().with_tracy()`
+    #[cfg(feature = "tracy")]
+    #[inline]
+    pub fn tracy() -> Self {
+        Self::empty().with_tracy()
+    }
+
+    /// Create an instance with logging to a file enabled
+    ///
+    /// Short form of `Tracing::empty().with_with(<path>)`
+    #[inline]
+    pub fn file(path: impl AsRef<Path>) -> Self {
+        Self::empty().with_file(path)
     }
 
     /// Enable logging to stdout
@@ -81,12 +109,8 @@ impl Tracing {
 
 impl Default for Tracing {
     /// Create a default instance with logging to stdout enabled
+    #[inline]
     fn default() -> Self {
-        Self {
-            log_to_stdout: true,
-            #[cfg(feature = "tracy")]
-            log_to_tracy: false,
-            log_to_file: None,
-        }
+        Tracing::stdout()
     }
 }
