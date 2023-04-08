@@ -1,7 +1,8 @@
 //! Define a REPL
 //!
-//! # Example
-//! ```rust
+//! # Examples
+//!
+//! ```no_run
 //! use utility::repl::prelude::*;
 //!
 //! repl(evaluate);
