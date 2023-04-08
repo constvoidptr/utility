@@ -4,3 +4,6 @@
 
 #[cfg(feature = "repl")]
 pub mod repl;
+
+#[cfg(feature = "telegram")]
+pub mod telegram;
