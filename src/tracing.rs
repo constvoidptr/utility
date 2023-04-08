@@ -6,14 +6,42 @@
 //! # use utility::tracing::Tracing;
 //! Tracing::stdout().with_file("log.exe").init();
 //! ```
+//!
+//! ```
+//! # use utility::tracing::Tracing;
+//! let _defer = Tracing::tracy().init();
+//! ```
 
 use std::path::{Path, PathBuf};
 use tracing_subscriber::layer::SubscriberExt;
 
+const SLEEP: std::time::Duration = std::time::Duration::from_secs(1);
+
+#[cfg_attr(feature = "tracy", must_use)]
+pub struct TracingDefer {
+    is_tracy_enabled: bool,
+}
+
+impl TracingDefer {
+    fn new(is_tracy_enabled: bool) -> Self {
+        if is_tracy_enabled {
+            std::thread::sleep(SLEEP);
+        }
+        Self { is_tracy_enabled }
+    }
+}
+
+impl Drop for TracingDefer {
+    fn drop(&mut self) {
+        if self.is_tracy_enabled {
+            std::thread::sleep(SLEEP);
+        }
+    }
+}
+
 #[must_use]
 pub struct Tracing {
     log_to_stdout: bool,
-    #[cfg(feature = "tracy")]
     log_to_tracy: bool,
     log_to_file: Option<PathBuf>,
 }
@@ -23,7 +51,6 @@ impl Tracing {
     pub fn empty() -> Self {
         Self {
             log_to_stdout: false,
-            #[cfg(feature = "tracy")]
             log_to_tracy: false,
             log_to_file: None,
         }
@@ -74,7 +101,9 @@ impl Tracing {
     }
 
     /// Initialize the tracing configuration
-    pub fn init(self) {
+    ///
+    /// Returns `TracingDefer`, which can be ignored if the `tracy` feature is not enabled.
+    pub fn init(self) -> TracingDefer {
         // stdout
         let stdout_layer = self
             .log_to_stdout
@@ -104,6 +133,8 @@ impl Tracing {
         // Register the subscriber
         tracing::subscriber::set_global_default(subscriber)
             .expect("failed to set global tracing subscriber");
+
+        TracingDefer::new(self.log_to_tracy)
     }
 }
 
