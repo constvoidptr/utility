@@ -5,5 +5,8 @@
 #[cfg(feature = "repl")]
 pub mod repl;
 
+#[cfg(feature = "tracing")]
+pub mod tracing;
+
 #[cfg(feature = "telegram")]
 pub mod telegram;
