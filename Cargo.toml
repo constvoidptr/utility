@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 repl = ["clap", "shlex"]
-telegram = ["ureq", "native-tls"]
+telegram = ["ureq", "native-tls", "urlencoding"]
 tracing = ["dep:tracing", "tracing-subscriber"]
 tracy = ["tracing", "tracing-tracy"]
 
