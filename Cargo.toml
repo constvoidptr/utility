@@ -10,6 +10,7 @@ repl = ["clap", "shlex"]
 telegram = ["ureq", "native-tls", "urlencoding"]
 tracing = ["dep:tracing", "tracing-subscriber"]
 tracy = ["tracing", "tracing-tracy"]
+tts = ["windows"]
 
 [dependencies]
 
@@ -51,4 +52,10 @@ optional = true
 
 [dependencies.urlencoding]
 version = "2.1.2"
+optional = true
+
+# tts
+[dependencies.windows]
+version = "0.48.0"
+features = ["Media_SpeechSynthesis", "Storage_Streams", "Foundation", "Foundation_Collections"]
 optional = true

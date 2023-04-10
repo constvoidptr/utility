@@ -1,6 +1,6 @@
-//! Collection of often used utilities
+//! Collection of utilities
 //!
-//! Every module behind a feature gates of the same name to speed up compilation and reduce dependencies.
+//! Every module is behind a feature gates of the same name.
 
 #[cfg(feature = "repl")]
 pub mod repl;
@@ -10,3 +10,6 @@ pub mod tracing;
 
 #[cfg(feature = "telegram")]
 pub mod telegram;
+
+#[cfg(all(feature = "tts", target_os = "windows"))]
+pub mod tts;
