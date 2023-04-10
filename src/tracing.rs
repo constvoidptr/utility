@@ -12,7 +12,9 @@
 //! let _defer = Tracing::tracy().init();
 //! ```
 
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard};
 use tracing_subscriber::layer::SubscriberExt;
 
 const SLEEP: std::time::Duration = std::time::Duration::from_secs(1);
@@ -111,9 +113,27 @@ impl Tracing {
 
         // file
         let file_layer = self.log_to_file.map(|path| {
+            // Create file and it's writer
             let log_file = std::fs::File::create(path).expect("failed to create log file");
+            let wtr = Writer(Arc::new(Mutex::new(BufWriter::new(log_file))));
+
+            // Register a panic hook that prints the stack backtrace to the file
+            let panic_wtr = wtr.clone();
+            let old_hook = std::panic::take_hook();
+            std::panic::set_hook(Box::new(move |info| {
+                if let Ok(mut guard) = panic_wtr.0.try_lock() {
+                    let backtrace = std::backtrace::Backtrace::force_capture();
+                    let msg = format!("{info}\n\nStack backtrace:\n{backtrace}");
+                    guard
+                        .write_all(msg.as_bytes())
+                        .expect("failed to write backtrace");
+                    guard.flush().expect("failed to flush buffer");
+                }
+                old_hook(info);
+            }));
+
             tracing_subscriber::fmt::layer()
-                .with_writer(std::sync::Mutex::new(log_file))
+                .with_writer(wtr)
                 .with_ansi(false)
                 .pretty()
         });
@@ -143,5 +163,41 @@ impl Default for Tracing {
     #[inline]
     fn default() -> Self {
         Tracing::stdout()
+    }
+}
+
+/// New type that implements Write for a MutexGuard
+struct MutexWriteGuard<'a, W>(MutexGuard<'a, W>);
+
+impl<W> Write for MutexWriteGuard<'_, W>
+where
+    W: Write,
+{
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.0.flush()
+    }
+}
+
+/// New type that implements Write for a Arc<Mutex<W>>
+struct Writer<W>(Arc<Mutex<W>>);
+
+impl<'a, W> tracing_subscriber::fmt::MakeWriter<'a> for Writer<W>
+where
+    W: Write + 'a,
+{
+    type Writer = MutexWriteGuard<'a, W>;
+
+    fn make_writer(&'a self) -> Self::Writer {
+        MutexWriteGuard(self.0.lock().expect("lock poisoned"))
+    }
+}
+
+impl<W> Clone for Writer<W> {
+    fn clone(&self) -> Self {
+        Writer(Arc::clone(&self.0))
     }
 }
