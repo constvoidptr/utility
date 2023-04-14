@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 repl = ["clap", "shlex"]
-telegram = ["ureq", "native-tls", "urlencoding"]
+telegram = ["reqwest", "urlencoding"]
 tracing = ["dep:tracing", "tracing-subscriber"]
 tracy = ["tracing", "tracing-tracy"]
 tts = ["windows"]
@@ -35,19 +35,14 @@ optional = true
 
 [dependencies.tracing-tracy]
 version = "*"
-optional = true
 default-features = false
 features = ["enable", "system-tracing", "context-switch-tracing", "sampling", "code-transfer", "only-localhost", "timer-fallback"]
-
-# telegram
-[dependencies.ureq]
-version = "2.6.2"
-default-features = false
-features = ["native-tls", "gzip"]
 optional = true
 
-[dependencies.native-tls]
-version = "0.2.11"
+# telegram
+[dependencies.reqwest]
+version = "0.11.16"
+features = ["blocking", "gzip"]
 optional = true
 
 [dependencies.urlencoding]

@@ -8,40 +8,38 @@
 //! telegram.send_message("Hello, World!").unwrap();
 //! ```
 
-use std::sync::Arc;
+const HTTP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 pub struct Telegram {
-    agent: ureq::Agent,
+    client: reqwest::blocking::Client,
     url_base: String,
 }
 
 impl Telegram {
     /// Create a new `Telegram` instance
     pub fn new(token: &str, chat_id: &str) -> Self {
-        let agent = ureq::AgentBuilder::new()
-            .timeout(std::time::Duration::from_secs(3))
-            .tls_connector(Arc::new(
-                native_tls::TlsConnector::new().expect("failed to create tls connector"),
-            ))
-            .build();
-
-        Self::with_agent(token, chat_id, agent)
+        let client = reqwest::blocking::ClientBuilder::new()
+            .https_only(true)
+            .timeout(HTTP_TIMEOUT)
+            .build()
+            .expect("failed to build http client");
+        Self::with_agent(token, chat_id, client)
     }
 
     /// Create a new `Telegram` instance with an already existing agent
-    pub fn with_agent(token: &str, chat_id: &str, agent: ureq::Agent) -> Self {
+    pub fn with_agent(token: &str, chat_id: &str, client: reqwest::blocking::Client) -> Self {
         let url_base =
             format!("https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text=");
 
-        Self { agent, url_base }
+        Self { client, url_base }
     }
 
     /// Send a telegram message
-    pub fn send_message(&self, text: &str) -> Result<(), Box<ureq::Error>> {
+    pub fn send_message(&self, text: &str) -> reqwest::Result<()> {
         // URL encode the message to allow for special characters
         let encoded_msg = urlencoding::encode(text);
         let url = format!("{}{}", self.url_base, encoded_msg);
-        self.agent.post(&url).call().map_err(Box::new)?;
+        self.client.post(url).send()?;
         Ok(())
     }
 }
