@@ -3,13 +3,13 @@
 //! # Examples
 //!
 //! ```
-//! # use utility::tracing::Tracing;
-//! Tracing::stdout().with_file("log.exe").init();
+//! # use utility::tracing::TracingBuilder;
+//! TracingBuilder::stdout().with_file("log.exe").init();
 //! ```
 //!
 //! ```
-//! # use utility::tracing::Tracing;
-//! let _defer = Tracing::tracy().init();
+//! # use utility::tracing::TracingBuilder;
+//! let _defer = TracingBuilder::tracy().init();
 //! ```
 
 use std::io::{BufWriter, Write};
@@ -42,13 +42,13 @@ impl Drop for TracingDefer {
 }
 
 #[must_use]
-pub struct Tracing {
+pub struct TracingBuilder {
     log_to_stdout: bool,
     log_to_tracy: bool,
     log_to_file: Option<PathBuf>,
 }
 
-impl Tracing {
+impl TracingBuilder {
     /// Create an empty instance with no logging enabled
     pub fn empty() -> Self {
         Self {
@@ -158,11 +158,11 @@ impl Tracing {
     }
 }
 
-impl Default for Tracing {
+impl Default for TracingBuilder {
     /// Create a default instance with logging to stdout enabled
     #[inline]
     fn default() -> Self {
-        Tracing::stdout()
+        TracingBuilder::stdout()
     }
 }
 
