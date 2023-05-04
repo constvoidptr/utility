@@ -1,46 +1,27 @@
-//! Convenient tracing setup
+//! Provides convenient tracing setup.
 //!
 //! # Examples
 //!
+//! Set up tracing for stdout and file logging
 //! ```
-//! # use utility::tracing::TracingBuilder;
-//! TracingBuilder::stdout().with_file("log.exe").init();
+//! utility::tracing::stdout().with_file("log.txt").init();
 //! ```
 //!
+//! Set up tracing for use with tracy
 //! ```
-//! # use utility::tracing::TracingBuilder;
-//! let _defer = TracingBuilder::tracy().init();
+//! let _defer = utility::tracing::tracy().init();
 //! ```
 
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Duration;
 use tracing_subscriber::layer::SubscriberExt;
 
-const SLEEP: std::time::Duration = std::time::Duration::from_secs(1);
+/// Amount to time to wait for tracy to establish / finish the connection
+const TRACY_CONNECTION_TIMEOUT: Duration = Duration::from_secs(1);
 
-#[cfg_attr(feature = "tracy", must_use)]
-pub struct TracingDefer {
-    is_tracy_enabled: bool,
-}
-
-impl TracingDefer {
-    fn new(is_tracy_enabled: bool) -> Self {
-        if is_tracy_enabled {
-            std::thread::sleep(SLEEP);
-        }
-        Self { is_tracy_enabled }
-    }
-}
-
-impl Drop for TracingDefer {
-    fn drop(&mut self) {
-        if self.is_tracy_enabled {
-            std::thread::sleep(SLEEP);
-        }
-    }
-}
-
+/// Configuration to use for tracing
 #[must_use]
 pub struct TracingBuilder {
     log_to_stdout: bool,
@@ -56,31 +37,6 @@ impl TracingBuilder {
             log_to_tracy: false,
             log_to_file: None,
         }
-    }
-
-    /// Create an instance with logging to stdout enabled
-    ///
-    /// Short form of `Tracing::empty().with_stdout()`
-    #[inline]
-    pub fn stdout() -> Self {
-        Self::empty().with_stdout()
-    }
-
-    /// Create an instance with logging to tracy enabled
-    ///
-    /// Short form of `Tracing::empty().with_tracy()`
-    #[cfg(feature = "tracy")]
-    #[inline]
-    pub fn tracy() -> Self {
-        Self::empty().with_tracy()
-    }
-
-    /// Create an instance with logging to a file enabled
-    ///
-    /// Short form of `Tracing::empty().with_with(<path>)`
-    #[inline]
-    pub fn file(path: impl AsRef<Path>) -> Self {
-        Self::empty().with_file(path)
     }
 
     /// Enable logging to stdout
@@ -104,7 +60,7 @@ impl TracingBuilder {
 
     /// Initialize the tracing configuration
     ///
-    /// Returns `TracingDefer`, which can be ignored if the `tracy` feature is not enabled.
+    /// Returns [`TracingDefer`], which can be ignored if the `tracy` feature is not enabled.
     pub fn init(self) -> TracingDefer {
         // stdout
         let stdout_layer = self
@@ -162,7 +118,55 @@ impl Default for TracingBuilder {
     /// Create a default instance with logging to stdout enabled
     #[inline]
     fn default() -> Self {
-        TracingBuilder::stdout()
+        TracingBuilder::empty().with_stdout()
+    }
+}
+
+/// Create [`TracingBuilder`] instance with logging to stdout enabled
+///
+/// Short form of `TracingBuilder::empty().with_stdout()`
+#[inline]
+pub fn stdout() -> TracingBuilder {
+    TracingBuilder::empty().with_stdout()
+}
+
+/// Create an [`TracingBuilder`] instance with logging to tracy enabled
+///
+/// Short form of `TracingBuilder::empty().with_tracy()`
+#[cfg(feature = "tracy")]
+#[inline]
+pub fn tracy() -> TracingBuilder {
+    TracingBuilder::empty().with_tracy()
+}
+
+/// Create an [`TracingBuilder`] instance with logging to a file enabled
+///
+/// Short form of `TracingBuilder::empty().with_with(<path>)`
+#[inline]
+pub fn file(path: impl AsRef<Path>) -> TracingBuilder {
+    TracingBuilder::empty().with_file(path)
+}
+
+/// Utility struct that ensures proper shutdown of tracy when dropped
+#[cfg_attr(feature = "tracy", must_use)]
+pub struct TracingDefer {
+    is_tracy_enabled: bool,
+}
+
+impl TracingDefer {
+    fn new(is_tracy_enabled: bool) -> Self {
+        if is_tracy_enabled {
+            std::thread::sleep(TRACY_CONNECTION_TIMEOUT);
+        }
+        Self { is_tracy_enabled }
+    }
+}
+
+impl Drop for TracingDefer {
+    fn drop(&mut self) {
+        if self.is_tracy_enabled {
+            std::thread::sleep(TRACY_CONNECTION_TIMEOUT);
+        }
     }
 }
 
