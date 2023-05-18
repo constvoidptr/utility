@@ -5,3 +5,6 @@
 # Editors
 .idea/
 .vs/
+
+src/main.rs
+log.txt
