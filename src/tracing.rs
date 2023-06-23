@@ -195,7 +195,9 @@ where
     W: Write,
 {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.0.write(buf)
+        let bytes_written = self.0.write(buf)?;
+        self.flush()?;
+        Ok(bytes_written)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
