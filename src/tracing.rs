@@ -7,6 +7,11 @@
 //! utility::tracing::stdout().with_file("log.txt").init();
 //! ```
 //!
+//! Standard log level is INFO, use [`with_level`] to set another minimum log level
+//! ```
+//! utility::tracing::file("log.txt").with_level(tracing::Level::DEBUG).init();
+//! ```
+//!
 //! Set up tracing for use with tracy
 //! ```
 //! let _defer = utility::tracing::tracy().init();
@@ -27,6 +32,7 @@ pub struct TracingBuilder {
     log_to_stdout: bool,
     log_to_tracy: bool,
     log_to_file: Option<PathBuf>,
+    log_level: Option<tracing::Level>,
 }
 
 impl TracingBuilder {
@@ -36,6 +42,7 @@ impl TracingBuilder {
             log_to_stdout: false,
             log_to_tracy: false,
             log_to_file: None,
+            log_level: None,
         }
     }
 
@@ -55,6 +62,12 @@ impl TracingBuilder {
     /// Enable logging to the specified file
     pub fn with_file(mut self, path: impl AsRef<Path>) -> Self {
         self.log_to_file = Some(path.as_ref().to_path_buf());
+        self
+    }
+
+    /// Set the log level
+    pub fn with_level(mut self, level: tracing::Level) -> Self {
+        self.log_level = Some(level);
         self
     }
 
@@ -100,11 +113,15 @@ impl TracingBuilder {
         #[cfg(not(feature = "tracy"))]
         let tracy_layer: Option<tracing_subscriber::fmt::Layer<_>> = None;
 
+        // Min log level
+        let min_level = self.log_level.unwrap_or(tracing::Level::INFO);
+
         // Combine layers
         let subscriber = tracing_subscriber::registry()
             .with(stdout_layer)
             .with(tracy_layer)
-            .with(file_layer);
+            .with(file_layer)
+            .with(tracing::level_filters::LevelFilter::from_level(min_level));
 
         // Register the subscriber
         tracing::subscriber::set_global_default(subscriber)
