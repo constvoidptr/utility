@@ -78,7 +78,7 @@ impl TracingBuilder {
         // stdout
         let stdout_layer = self
             .log_to_stdout
-            .then(|| tracing_subscriber::fmt::layer().with_writer(std::io::stdout));
+            .then(|| tracing_subscriber::fmt::layer().with_ansi(false).with_writer(std::io::stdout));
 
         // file
         let file_layer = self.log_to_file.map(|path| {
