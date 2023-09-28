@@ -13,3 +13,6 @@ pub mod telegram;
 
 #[cfg(all(feature = "tts", target_os = "windows"))]
 pub mod tts;
+
+#[cfg(feature = "measure")]
+pub mod measure;

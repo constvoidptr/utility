@@ -11,6 +11,7 @@ telegram = ["reqwest", "urlencoding"]
 tracing = ["dep:tracing", "tracing-subscriber"]
 tracy = ["tracing", "tracing-tracy"]
 tts = ["windows"]
+measure = []
 
 [dependencies]
 
