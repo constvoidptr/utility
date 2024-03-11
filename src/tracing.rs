@@ -109,7 +109,7 @@ impl TracingBuilder {
 
         // tracy
         #[cfg(feature = "tracy")]
-        let tracy_layer = self.log_to_tracy.then(tracing_tracy::TracyLayer::new);
+        let tracy_layer = self.log_to_tracy.then(tracing_tracy::TracyLayer::default);
         #[cfg(not(feature = "tracy"))]
         let tracy_layer: Option<tracing_subscriber::fmt::Layer<_>> = None;
 
